@@ -1,54 +1,52 @@
 // ======================================================
-// TAF — VERSION PRO+
-// Chargement sécurisé, logs propres.
+// TAF — PRO+++
+// Chargement sécurisé + UI propre
 // ======================================================
 
 import { ENDPOINTS } from "./config.js";
 import { fetchJSON, updateStatusPanel } from "./helpers.js";
 
-const IS_DEV = location.hostname.includes("localhost") || location.hostname.includes("127.0.0.1");
+const IS_DEV = location.hostname.includes("localhost");
 const log = (...a) => IS_DEV && console.log("[TAF]", ...a);
 const logErr = (...a) => console.error("[TAF ERROR]", ...a);
 
 // ------------------------------------------------------
-// INIT (manquant auparavant)
+// INIT
 // ------------------------------------------------------
 export function initTaf() {
     safeLoadTaf();
 }
 
 // ------------------------------------------------------
-// Chargement sécurisé
+// SAFE LOAD
 // ------------------------------------------------------
 export async function safeLoadTaf() {
     try {
-        await loadTaf();
+        const data = await fetchJSON(ENDPOINTS.taf);
+
+        if (!data || !data.data || !data.data[0]) {
+            updateStatusPanel("TAF", { error: true });
+            updateTafUI("TAF indisponible");
+            return;
+        }
+
+        const raw = data.data[0].raw_text;
+        updateTafUI(raw);
+
+        updateStatusPanel("TAF", { ok: true });
         log("TAF chargé");
+
     } catch (err) {
-        logErr("Erreur TAF :", err);
+        logErr("Erreur TAF", err);
+        updateStatusPanel("TAF", { error: true });
+        updateTafUI("TAF indisponible");
     }
 }
 
 // ------------------------------------------------------
-// Chargement brut
+// UI
 // ------------------------------------------------------
-export async function loadTaf() {
-    const data = await fetchJSON(ENDPOINTS.taf);
-    updateTafUI(data);
-    updateStatusPanel("TAF", data);
-}
-
-// ------------------------------------------------------
-// Mise à jour UI
-// ------------------------------------------------------
-export function updateTafUI(data) {
+export function updateTafUI(raw) {
     const el = document.getElementById("taf");
-    if (!el) return;
-
-    if (!data || !data.data || !data.data[0] || !data.data[0].raw_text) {
-        el.innerText = "TAF indisponible";
-        return;
-    }
-
-    el.innerText = data.data[0].raw_text;
+    if (el) el.textContent = raw || "TAF indisponible";
 }
